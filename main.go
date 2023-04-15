@@ -3,11 +3,16 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"golox/lox"
 	"os"
 )
 
-func run(s string) error {
-	return nil
+func run(source string) {
+	scanner := lox.NewScanner(source)
+	tokens := scanner.ScanTokens()
+	for _, t := range tokens {
+		fmt.Printf("%s\n", t)
+	}
 }
 
 func runFile(path string) error {
@@ -15,7 +20,11 @@ func runFile(path string) error {
 	if err != nil {
 		return err
 	}
-	return run(string(bytes))
+	run(string(bytes))
+	if lox.HadError {
+		os.Exit(65)
+	}
+	return nil
 }
 
 func runPrompt() {
@@ -25,7 +34,8 @@ func runPrompt() {
 		if !scanner.Scan() {
 			break
 		}
-		_ = run(scanner.Text())
+		run(scanner.Text())
+		lox.HadError = false
 	}
 }
 
