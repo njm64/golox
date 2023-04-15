@@ -1,5 +1,28 @@
 package lox
 
+import (
+	"strconv"
+	"unicode"
+)
+
+var identifierMap = map[string]TokenType{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
+}
+
 type Scanner struct {
 	source  string
 	tokens  []*Token
@@ -89,9 +112,69 @@ func (s *Scanner) scanToken() {
 		break
 	case '\n':
 		s.line++
+	case '"':
+		s.string()
 	default:
-		Error(s.line, "Unexpected character.")
+		if isDigit(c) {
+			s.number()
+		} else if isAlpha(c) {
+			s.identifier()
+		} else {
+			Error(s.line, "Unexpected character.")
+		}
 	}
+}
+
+func (s *Scanner) identifier() {
+	for isAlphanumeric(s.peek()) {
+		s.advance()
+	}
+	text := s.source[s.start:s.current]
+	tokenType, ok := identifierMap[text]
+	if !ok {
+		tokenType = IDENTIFIER
+	}
+	s.addToken(tokenType)
+}
+
+func (s *Scanner) number() {
+	for isDigit(s.peek()) {
+		s.advance()
+	}
+
+	// Look for a fractional part
+	if s.peek() == '.' && isDigit(s.peekNext()) {
+		// Consume the "."
+		s.advance()
+		for unicode.IsDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	n, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
+
+	s.addLiteralToken(NUMBER, n)
+}
+
+func (s *Scanner) string() {
+	for s.peek() != '"' && !s.isAtEnd() {
+		if s.peek() == '\n' {
+			s.line++
+		}
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		Error(s.line, "Unterminated string.")
+		return
+	}
+
+	// The closing ".
+	s.advance()
+
+	// Trim the surrounding quotes
+	value := s.source[s.start+1 : s.current-1]
+	s.addLiteralToken(STRING, value)
 }
 
 func (s *Scanner) advance() rune {
@@ -126,4 +209,23 @@ func (s *Scanner) peek() rune {
 	} else {
 		return rune(s.source[s.current])
 	}
+}
+
+func (s *Scanner) peekNext() rune {
+	if s.current+1 >= len(s.source) {
+		return 0
+	}
+	return rune(s.source[s.current+1])
+}
+
+func isDigit(c rune) bool {
+	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c rune) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+func isAlphanumeric(c rune) bool {
+	return isDigit(c) || isAlpha(c)
 }
