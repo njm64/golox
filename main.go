@@ -8,6 +8,17 @@ import (
 	"os"
 )
 
+func interpret(e expr.Expr) {
+	defer func() {
+		if r := recover(); r != nil {
+			err := r.(*expr.RuntimeError)
+			lox.RuntimeError(err)
+		}
+	}()
+	value := expr.Eval(e)
+	fmt.Printf("%v\n", value)
+}
+
 func run(source string) {
 	scanner := lox.NewScanner(source)
 	tokens := scanner.ScanTokens()
@@ -23,7 +34,7 @@ func run(source string) {
 		return
 	}
 
-	fmt.Printf("%s\n", expr.Print(e))
+	interpret(e)
 }
 
 func runFile(path string) error {
@@ -34,6 +45,9 @@ func runFile(path string) error {
 	run(string(bytes))
 	if lox.HadError {
 		os.Exit(65)
+	}
+	if lox.HadRuntimeError {
+		os.Exit(70)
 	}
 	return nil
 }

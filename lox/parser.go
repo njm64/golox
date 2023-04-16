@@ -174,7 +174,7 @@ func (p *Parser) previous() *tok.Token {
 }
 
 func (p *Parser) error(tok *tok.Token, message string) error {
-	ErrorWithToken(tok, message)
+	ParseError(tok, message)
 	return errors.New(message)
 }
 

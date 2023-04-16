@@ -14,6 +14,7 @@ var identifierMap = map[string]tok.Type{
 	"for":    tok.For,
 	"fun":    tok.Fun,
 	"if":     tok.If,
+	"nil":    tok.Nil,
 	"or":     tok.Or,
 	"print":  tok.Print,
 	"return": tok.Return,
