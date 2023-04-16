@@ -1,31 +1,32 @@
 package lox
 
 import (
+	"golox/tok"
 	"strconv"
 	"unicode"
 )
 
-var identifierMap = map[string]TokenType{
-	"and":    AND,
-	"class":  CLASS,
-	"else":   ELSE,
-	"false":  FALSE,
-	"for":    FOR,
-	"fun":    FUN,
-	"if":     IF,
-	"or":     OR,
-	"print":  PRINT,
-	"return": RETURN,
-	"super":  SUPER,
-	"this":   THIS,
-	"true":   TRUE,
-	"var":    VAR,
-	"while":  WHILE,
+var identifierMap = map[string]tok.Type{
+	"and":    tok.And,
+	"class":  tok.Class,
+	"else":   tok.Else,
+	"false":  tok.False,
+	"for":    tok.For,
+	"fun":    tok.Fun,
+	"if":     tok.If,
+	"or":     tok.Or,
+	"print":  tok.Print,
+	"return": tok.Return,
+	"super":  tok.Super,
+	"this":   tok.This,
+	"true":   tok.True,
+	"var":    tok.Var,
+	"while":  tok.While,
 }
 
 type Scanner struct {
 	source  string
-	tokens  []*Token
+	tokens  []*tok.Token
 	start   int
 	current int
 	line    int
@@ -38,13 +39,13 @@ func NewScanner(source string) *Scanner {
 	}
 }
 
-func (s *Scanner) ScanTokens() []*Token {
+func (s *Scanner) ScanTokens() []*tok.Token {
 	for !s.isAtEnd() {
 		s.start = s.current
 		s.scanToken()
 	}
 
-	s.tokens = append(s.tokens, NewToken(EOF, "", nil, s.line))
+	s.tokens = append(s.tokens, tok.NewToken(tok.EOF, "", nil, s.line))
 	return s.tokens
 }
 
@@ -56,48 +57,48 @@ func (s *Scanner) scanToken() {
 	c := s.advance()
 	switch c {
 	case '(':
-		s.addToken(LEFT_PAREN)
+		s.addToken(tok.LeftParen)
 	case ')':
-		s.addToken(RIGHT_PAREN)
+		s.addToken(tok.RightParen)
 	case '{':
-		s.addToken(LEFT_BRACE)
+		s.addToken(tok.LeftBrace)
 	case '}':
-		s.addToken(RIGHT_BRACE)
+		s.addToken(tok.RightBrace)
 	case ',':
-		s.addToken(COMMA)
+		s.addToken(tok.Comma)
 	case '.':
-		s.addToken(DOT)
+		s.addToken(tok.Dot)
 	case '-':
-		s.addToken(MINUS)
+		s.addToken(tok.Minus)
 	case '+':
-		s.addToken(PLUS)
+		s.addToken(tok.Plus)
 	case ';':
-		s.addToken(SEMICOLON)
+		s.addToken(tok.Semicolon)
 	case '*':
-		s.addToken(STAR)
+		s.addToken(tok.Star)
 	case '!':
 		if s.match('=') {
-			s.addToken(BANG_EQUAL)
+			s.addToken(tok.BangEqual)
 		} else {
-			s.addToken(BANG)
+			s.addToken(tok.Bang)
 		}
 	case '=':
 		if s.match('=') {
-			s.addToken(EQUAL_EQUAL)
+			s.addToken(tok.EqualEqual)
 		} else {
-			s.addToken(EQUAL)
+			s.addToken(tok.Equal)
 		}
 	case '<':
 		if s.match('=') {
-			s.addToken(LESS_EQUAL)
+			s.addToken(tok.LessEqual)
 		} else {
-			s.addToken(LESS)
+			s.addToken(tok.Less)
 		}
 	case '>':
 		if s.match('=') {
-			s.addToken(GREATER_EQUAL)
+			s.addToken(tok.GreaterEqual)
 		} else {
-			s.addToken(GREATER)
+			s.addToken(tok.Greater)
 		}
 	case '/':
 		if s.match('/') {
@@ -105,7 +106,7 @@ func (s *Scanner) scanToken() {
 				s.advance()
 			}
 		} else {
-			s.addToken(SLASH)
+			s.addToken(tok.Slash)
 		}
 	case ' ', '\r', '\t':
 		// Ignore whitespace
@@ -132,7 +133,7 @@ func (s *Scanner) identifier() {
 	text := s.source[s.start:s.current]
 	tokenType, ok := identifierMap[text]
 	if !ok {
-		tokenType = IDENTIFIER
+		tokenType = tok.Identifier
 	}
 	s.addToken(tokenType)
 }
@@ -153,7 +154,7 @@ func (s *Scanner) number() {
 
 	n, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
 
-	s.addLiteralToken(NUMBER, n)
+	s.addLiteralToken(tok.Number, n)
 }
 
 func (s *Scanner) string() {
@@ -174,7 +175,7 @@ func (s *Scanner) string() {
 
 	// Trim the surrounding quotes
 	value := s.source[s.start+1 : s.current-1]
-	s.addLiteralToken(STRING, value)
+	s.addLiteralToken(tok.String, value)
 }
 
 func (s *Scanner) advance() rune {
@@ -183,13 +184,13 @@ func (s *Scanner) advance() rune {
 	return rune(c)
 }
 
-func (s *Scanner) addToken(tokenType TokenType) {
+func (s *Scanner) addToken(tokenType tok.Type) {
 	s.addLiteralToken(tokenType, nil)
 }
 
-func (s *Scanner) addLiteralToken(tokenType TokenType, literal any) {
+func (s *Scanner) addLiteralToken(tokenType tok.Type, literal any) {
 	text := s.source[s.start:s.current]
-	s.tokens = append(s.tokens, NewToken(tokenType, text, literal, s.line))
+	s.tokens = append(s.tokens, tok.NewToken(tokenType, text, literal, s.line))
 }
 
 func (s *Scanner) match(expected rune) bool {

@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"golox/expr"
 	"golox/lox"
+	"golox/tok"
 	"os"
 )
 
@@ -40,6 +42,20 @@ func runPrompt() {
 }
 
 func main() {
+
+	e := &expr.Binary{
+		Left: &expr.Unary{
+			Operator: tok.Token{Type: tok.Minus, Lexeme: "-"},
+			Right:    &expr.Literal{Value: 123},
+		},
+		Operator: tok.Token{Type: tok.Star, Lexeme: "*"},
+		Right: &expr.Grouping{
+			Expression: &expr.Literal{Value: 45.67},
+		},
+	}
+
+	fmt.Printf("%s\n", expr.Print(e))
+
 	if len(os.Args) > 2 {
 		fmt.Printf("Usage: golox [script]\n")
 		os.Exit(64)
