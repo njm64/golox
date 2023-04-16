@@ -15,7 +15,7 @@ func (e *Unary) expr()    {}
 
 type Binary struct {
 	Left     Expr
-	Operator tok.Token
+	Operator *tok.Token
 	Right    Expr
 }
 
@@ -28,6 +28,6 @@ type Literal struct {
 }
 
 type Unary struct {
-	Operator tok.Token
+	Operator *tok.Token
 	Right    Expr
 }

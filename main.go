@@ -5,16 +5,25 @@ import (
 	"fmt"
 	"golox/expr"
 	"golox/lox"
-	"golox/tok"
 	"os"
 )
 
 func run(source string) {
 	scanner := lox.NewScanner(source)
 	tokens := scanner.ScanTokens()
-	for _, t := range tokens {
-		fmt.Printf("%s\n", t)
+
+	parser := lox.NewParser(tokens)
+	e, err := parser.Parse()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
 	}
+
+	if lox.HadError {
+		return
+	}
+
+	fmt.Printf("%s\n", expr.Print(e))
 }
 
 func runFile(path string) error {
@@ -42,20 +51,6 @@ func runPrompt() {
 }
 
 func main() {
-
-	e := &expr.Binary{
-		Left: &expr.Unary{
-			Operator: tok.Token{Type: tok.Minus, Lexeme: "-"},
-			Right:    &expr.Literal{Value: 123},
-		},
-		Operator: tok.Token{Type: tok.Star, Lexeme: "*"},
-		Right: &expr.Grouping{
-			Expression: &expr.Literal{Value: 45.67},
-		},
-	}
-
-	fmt.Printf("%s\n", expr.Print(e))
-
 	if len(os.Args) > 2 {
 		fmt.Printf("Usage: golox [script]\n")
 		os.Exit(64)
