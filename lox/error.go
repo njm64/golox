@@ -2,31 +2,39 @@ package lox
 
 import (
 	"fmt"
-	"golox/expr"
-	"golox/tok"
+	tok2 "golox/lox/tok"
 )
+
+type Error struct {
+	Token   *tok2.Token
+	Message string
+}
+
+func (e *Error) Error() string {
+	return e.Message
+}
 
 var HadError = false
 var HadRuntimeError = false
-
-func Error(line int, message string) {
-	report(line, "", message)
-}
 
 func report(line int, where string, message string) {
 	fmt.Printf("[line %d] Error%s: %s\n", line, where, message)
 	HadError = true
 }
 
-func ParseError(t *tok.Token, message string) {
-	if t.Type == tok.EOF {
-		report(t.Line, " at end", message)
+func ReportScanError(line int, message string) {
+	report(line, "", message)
+}
+
+func ReportParseError(err *Error) {
+	if err.Token.Type == tok2.EOF {
+		report(err.Token.Line, " at end", err.Message)
 	} else {
-		report(t.Line, " at '"+t.Lexeme+"'", message)
+		report(err.Token.Line, " at '"+err.Token.Lexeme+"'", err.Message)
 	}
 }
 
-func RuntimeError(err *expr.RuntimeError) {
+func ReportRuntimeError(err *Error) {
 	fmt.Printf("%s\n[line %d]\n", err.Message, err.Token.Line)
 	HadRuntimeError = true
 }

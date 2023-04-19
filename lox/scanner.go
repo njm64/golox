@@ -1,33 +1,33 @@
 package lox
 
 import (
-	"golox/tok"
+	tok2 "golox/lox/tok"
 	"strconv"
 	"unicode"
 )
 
-var identifierMap = map[string]tok.Type{
-	"and":    tok.And,
-	"class":  tok.Class,
-	"else":   tok.Else,
-	"false":  tok.False,
-	"for":    tok.For,
-	"fun":    tok.Fun,
-	"if":     tok.If,
-	"nil":    tok.Nil,
-	"or":     tok.Or,
-	"print":  tok.Print,
-	"return": tok.Return,
-	"super":  tok.Super,
-	"this":   tok.This,
-	"true":   tok.True,
-	"var":    tok.Var,
-	"while":  tok.While,
+var identifierMap = map[string]tok2.Type{
+	"and":    tok2.And,
+	"class":  tok2.Class,
+	"else":   tok2.Else,
+	"false":  tok2.False,
+	"for":    tok2.For,
+	"fun":    tok2.Fun,
+	"if":     tok2.If,
+	"nil":    tok2.Nil,
+	"or":     tok2.Or,
+	"print":  tok2.Print,
+	"return": tok2.Return,
+	"super":  tok2.Super,
+	"this":   tok2.This,
+	"true":   tok2.True,
+	"var":    tok2.Var,
+	"while":  tok2.While,
 }
 
 type Scanner struct {
 	source  string
-	tokens  []*tok.Token
+	tokens  []*tok2.Token
 	start   int
 	current int
 	line    int
@@ -40,13 +40,13 @@ func NewScanner(source string) *Scanner {
 	}
 }
 
-func (s *Scanner) ScanTokens() []*tok.Token {
+func (s *Scanner) ScanTokens() []*tok2.Token {
 	for !s.isAtEnd() {
 		s.start = s.current
 		s.scanToken()
 	}
 
-	s.tokens = append(s.tokens, tok.NewToken(tok.EOF, "", nil, s.line))
+	s.tokens = append(s.tokens, tok2.NewToken(tok2.EOF, "", nil, s.line))
 	return s.tokens
 }
 
@@ -58,48 +58,48 @@ func (s *Scanner) scanToken() {
 	c := s.advance()
 	switch c {
 	case '(':
-		s.addToken(tok.LeftParen)
+		s.addToken(tok2.LeftParen)
 	case ')':
-		s.addToken(tok.RightParen)
+		s.addToken(tok2.RightParen)
 	case '{':
-		s.addToken(tok.LeftBrace)
+		s.addToken(tok2.LeftBrace)
 	case '}':
-		s.addToken(tok.RightBrace)
+		s.addToken(tok2.RightBrace)
 	case ',':
-		s.addToken(tok.Comma)
+		s.addToken(tok2.Comma)
 	case '.':
-		s.addToken(tok.Dot)
+		s.addToken(tok2.Dot)
 	case '-':
-		s.addToken(tok.Minus)
+		s.addToken(tok2.Minus)
 	case '+':
-		s.addToken(tok.Plus)
+		s.addToken(tok2.Plus)
 	case ';':
-		s.addToken(tok.Semicolon)
+		s.addToken(tok2.Semicolon)
 	case '*':
-		s.addToken(tok.Star)
+		s.addToken(tok2.Star)
 	case '!':
 		if s.match('=') {
-			s.addToken(tok.BangEqual)
+			s.addToken(tok2.BangEqual)
 		} else {
-			s.addToken(tok.Bang)
+			s.addToken(tok2.Bang)
 		}
 	case '=':
 		if s.match('=') {
-			s.addToken(tok.EqualEqual)
+			s.addToken(tok2.EqualEqual)
 		} else {
-			s.addToken(tok.Equal)
+			s.addToken(tok2.Equal)
 		}
 	case '<':
 		if s.match('=') {
-			s.addToken(tok.LessEqual)
+			s.addToken(tok2.LessEqual)
 		} else {
-			s.addToken(tok.Less)
+			s.addToken(tok2.Less)
 		}
 	case '>':
 		if s.match('=') {
-			s.addToken(tok.GreaterEqual)
+			s.addToken(tok2.GreaterEqual)
 		} else {
-			s.addToken(tok.Greater)
+			s.addToken(tok2.Greater)
 		}
 	case '/':
 		if s.match('/') {
@@ -107,7 +107,7 @@ func (s *Scanner) scanToken() {
 				s.advance()
 			}
 		} else {
-			s.addToken(tok.Slash)
+			s.addToken(tok2.Slash)
 		}
 	case ' ', '\r', '\t':
 		// Ignore whitespace
@@ -122,7 +122,7 @@ func (s *Scanner) scanToken() {
 		} else if isAlpha(c) {
 			s.identifier()
 		} else {
-			Error(s.line, "Unexpected character.")
+			ReportScanError(s.line, "Unexpected character.")
 		}
 	}
 }
@@ -134,7 +134,7 @@ func (s *Scanner) identifier() {
 	text := s.source[s.start:s.current]
 	tokenType, ok := identifierMap[text]
 	if !ok {
-		tokenType = tok.Identifier
+		tokenType = tok2.Identifier
 	}
 	s.addToken(tokenType)
 }
@@ -155,7 +155,7 @@ func (s *Scanner) number() {
 
 	n, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
 
-	s.addLiteralToken(tok.Number, n)
+	s.addLiteralToken(tok2.Number, n)
 }
 
 func (s *Scanner) string() {
@@ -167,7 +167,7 @@ func (s *Scanner) string() {
 	}
 
 	if s.isAtEnd() {
-		Error(s.line, "Unterminated string.")
+		ReportScanError(s.line, "Unterminated string.")
 		return
 	}
 
@@ -176,7 +176,7 @@ func (s *Scanner) string() {
 
 	// Trim the surrounding quotes
 	value := s.source[s.start+1 : s.current-1]
-	s.addLiteralToken(tok.String, value)
+	s.addLiteralToken(tok2.String, value)
 }
 
 func (s *Scanner) advance() rune {
@@ -185,13 +185,13 @@ func (s *Scanner) advance() rune {
 	return rune(c)
 }
 
-func (s *Scanner) addToken(tokenType tok.Type) {
+func (s *Scanner) addToken(tokenType tok2.Type) {
 	s.addLiteralToken(tokenType, nil)
 }
 
-func (s *Scanner) addLiteralToken(tokenType tok.Type, literal any) {
+func (s *Scanner) addLiteralToken(tokenType tok2.Type, literal any) {
 	text := s.source[s.start:s.current]
-	s.tokens = append(s.tokens, tok.NewToken(tokenType, text, literal, s.line))
+	s.tokens = append(s.tokens, tok2.NewToken(tokenType, text, literal, s.line))
 }
 
 func (s *Scanner) match(expected rune) bool {

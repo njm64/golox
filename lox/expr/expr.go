@@ -1,7 +1,7 @@
 package expr
 
 import (
-	"golox/tok"
+	"golox/lox/tok"
 )
 
 type Expr interface {
