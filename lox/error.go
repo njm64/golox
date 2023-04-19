@@ -2,11 +2,11 @@ package lox
 
 import (
 	"fmt"
-	tok2 "golox/lox/tok"
+	"golox/lox/tok"
 )
 
 type Error struct {
-	Token   *tok2.Token
+	Token   *tok.Token
 	Message string
 }
 
@@ -27,7 +27,7 @@ func ReportScanError(line int, message string) {
 }
 
 func ReportParseError(err *Error) {
-	if err.Token.Type == tok2.EOF {
+	if err.Token.Type == tok.EOF {
 		report(err.Token.Line, " at end", err.Message)
 	} else {
 		report(err.Token.Line, " at '"+err.Token.Lexeme+"'", err.Message)

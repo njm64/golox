@@ -3,38 +3,52 @@ package lox
 import (
 	"golox/lox/expr"
 	"golox/lox/stmt"
-	tok2 "golox/lox/tok"
+	"golox/lox/tok"
 )
 
 type Parser struct {
-	tokens  []*tok2.Token
+	tokens  []*tok.Token
 	current int
 }
 
-func NewParser(tokens []*tok2.Token) *Parser {
+func NewParser(tokens []*tok.Token) *Parser {
 	return &Parser{
 		tokens: tokens,
 	}
 }
 
-func (p *Parser) Parse() ([]stmt.Stmt, error) {
+func (p *Parser) Parse() []stmt.Stmt {
 	var statements []stmt.Stmt
 	for !p.isAtEnd() {
-		s, err := p.statement()
-		if err != nil {
-			return nil, err
+		s := p.declaration()
+		if s != nil {
+			statements = append(statements, s)
+			// TODO: Maybe it would be better to move the synchronize call here
 		}
-		statements = append(statements, s)
 	}
-	return statements, nil
+	return statements
 }
 
-func (p *Parser) expression() (expr.Expr, error) {
-	return p.equality()
+func (p *Parser) declaration() stmt.Stmt {
+	if p.match(tok.Var) {
+		s, err := p.varDeclaration()
+		if err != nil {
+			p.synchronize()
+			return nil
+		}
+		return s
+	} else {
+		s, err := p.statement()
+		if err != nil {
+			p.synchronize()
+			return nil
+		}
+		return s
+	}
 }
 
 func (p *Parser) statement() (stmt.Stmt, error) {
-	if p.match(tok2.Print) {
+	if p.match(tok.Print) {
 		return p.printStatement()
 	} else {
 		return p.expressionStatement()
@@ -46,11 +60,29 @@ func (p *Parser) printStatement() (stmt.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(tok2.Semicolon, "Expect ';' after value")
+	_, err = p.consume(tok.Semicolon, "Expect ';' after value")
 	if err != nil {
 		return nil, err
 	}
 	return &stmt.Print{Expression: value}, nil
+}
+
+func (p *Parser) varDeclaration() (stmt.Stmt, error) {
+	name, err := p.consume(tok.Identifier, "Expect variable name")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer expr.Expr
+	if p.match(tok.Equal) {
+		initializer, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(tok.Semicolon, "Expect ';' after variable declaration")
+	return &stmt.Var{Name: name, Initializer: initializer}, nil
 }
 
 func (p *Parser) expressionStatement() (stmt.Stmt, error) {
@@ -58,11 +90,39 @@ func (p *Parser) expressionStatement() (stmt.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(tok2.Semicolon, "Expect ';' after value")
+	_, err = p.consume(tok.Semicolon, "Expect ';' after value")
 	if err != nil {
 		return nil, err
 	}
 	return &stmt.Expression{Expression: value}, nil
+}
+
+func (p *Parser) expression() (expr.Expr, error) {
+	return p.assignment()
+}
+
+func (p *Parser) assignment() (expr.Expr, error) {
+	e, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(tok.Equal) {
+		equals := p.previous()
+		value, err := p.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		variable, ok := e.(*expr.Variable)
+		if ok {
+			return &expr.Assign{Name: variable.Name, Value: value}, nil
+		} else {
+			return nil, &Error{Token: equals, Message: "Invalid assignment target"}
+		}
+	}
+
+	return e, nil
 }
 
 func (p *Parser) equality() (expr.Expr, error) {
@@ -70,7 +130,7 @@ func (p *Parser) equality() (expr.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	for p.match(tok2.BangEqual, tok2.EqualEqual) {
+	for p.match(tok.BangEqual, tok.EqualEqual) {
 		op := p.previous()
 		right, err := p.comparison()
 		if err != nil {
@@ -86,7 +146,7 @@ func (p *Parser) comparison() (expr.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	for p.match(tok2.Greater, tok2.GreaterEqual, tok2.Less, tok2.LessEqual) {
+	for p.match(tok.Greater, tok.GreaterEqual, tok.Less, tok.LessEqual) {
 		op := p.previous()
 		right, err := p.term()
 		if err != nil {
@@ -102,7 +162,7 @@ func (p *Parser) term() (expr.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	for p.match(tok2.Minus, tok2.Plus) {
+	for p.match(tok.Minus, tok.Plus) {
 		op := p.previous()
 		right, err := p.factor()
 		if err != nil {
@@ -118,7 +178,7 @@ func (p *Parser) factor() (expr.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	for p.match(tok2.Slash, tok2.Star) {
+	for p.match(tok.Slash, tok.Star) {
 		op := p.previous()
 		right, err := p.unary()
 		if err != nil {
@@ -130,7 +190,7 @@ func (p *Parser) factor() (expr.Expr, error) {
 }
 
 func (p *Parser) unary() (expr.Expr, error) {
-	if p.match(tok2.Bang, tok2.Minus) {
+	if p.match(tok.Bang, tok.Minus) {
 		op := p.previous()
 		right, err := p.unary()
 		if err != nil {
@@ -142,20 +202,22 @@ func (p *Parser) unary() (expr.Expr, error) {
 }
 
 func (p *Parser) primary() (expr.Expr, error) {
-	if p.match(tok2.False) {
+	if p.match(tok.False) {
 		return &expr.Literal{Value: false}, nil
-	} else if p.match(tok2.True) {
+	} else if p.match(tok.True) {
 		return &expr.Literal{Value: true}, nil
-	} else if p.match(tok2.Nil) {
+	} else if p.match(tok.Nil) {
 		return &expr.Literal{Value: nil}, nil
-	} else if p.match(tok2.Number, tok2.String) {
+	} else if p.match(tok.Number, tok.String) {
 		return &expr.Literal{Value: p.previous().Literal}, nil
-	} else if p.match(tok2.LeftParen) {
+	} else if p.match(tok.Identifier) {
+		return &expr.Variable{Name: p.previous()}, nil
+	} else if p.match(tok.LeftParen) {
 		e, err := p.expression()
 		if err != nil {
 			return nil, err
 		}
-		_, err = p.consume(tok2.RightParen, "Expect ')' after expression")
+		_, err = p.consume(tok.RightParen, "Expect ')' after expression")
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +227,7 @@ func (p *Parser) primary() (expr.Expr, error) {
 	return nil, p.error(p.peek(), "Expect expression.")
 }
 
-func (p *Parser) match(ts ...tok2.Type) bool {
+func (p *Parser) match(ts ...tok.Type) bool {
 	for _, t := range ts {
 		if p.check(t) {
 			p.advance()
@@ -175,21 +237,21 @@ func (p *Parser) match(ts ...tok2.Type) bool {
 	return false
 }
 
-func (p *Parser) consume(t tok2.Type, message string) (*tok2.Token, error) {
+func (p *Parser) consume(t tok.Type, message string) (*tok.Token, error) {
 	if p.check(t) {
 		return p.advance(), nil
 	}
 	return nil, p.error(p.peek(), message)
 }
 
-func (p *Parser) check(t tok2.Type) bool {
+func (p *Parser) check(t tok.Type) bool {
 	if p.isAtEnd() {
 		return false
 	}
 	return p.peek().Type == t
 }
 
-func (p *Parser) advance() *tok2.Token {
+func (p *Parser) advance() *tok.Token {
 	if !p.isAtEnd() {
 		p.current++
 	}
@@ -197,18 +259,18 @@ func (p *Parser) advance() *tok2.Token {
 }
 
 func (p *Parser) isAtEnd() bool {
-	return p.peek().Type == tok2.EOF
+	return p.peek().Type == tok.EOF
 }
 
-func (p *Parser) peek() *tok2.Token {
+func (p *Parser) peek() *tok.Token {
 	return p.tokens[p.current]
 }
 
-func (p *Parser) previous() *tok2.Token {
+func (p *Parser) previous() *tok.Token {
 	return p.tokens[p.current-1]
 }
 
-func (p *Parser) error(tok *tok2.Token, message string) *Error {
+func (p *Parser) error(tok *tok.Token, message string) *Error {
 	err := &Error{
 		Token:   tok,
 		Message: message,
@@ -221,12 +283,12 @@ func (p *Parser) synchronize() {
 	p.advance()
 
 	for !p.isAtEnd() {
-		if p.previous().Type == tok2.Semicolon {
+		if p.previous().Type == tok.Semicolon {
 			return
 		}
 
 		switch p.peek().Type {
-		case tok2.Class, tok2.Fun, tok2.Var, tok2.For, tok2.If, tok2.While, tok2.Print, tok2.Return:
+		case tok.Class, tok.Fun, tok.Var, tok.For, tok.If, tok.While, tok.Print, tok.Return:
 			return
 		}
 

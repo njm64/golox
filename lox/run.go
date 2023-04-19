@@ -27,12 +27,8 @@ func run(source string) {
 	tokens := scanner.ScanTokens()
 
 	parser := NewParser(tokens)
-	e, err := parser.Parse()
-	if err != nil || HadError {
-		// Do we need the global HadError flag as well as looking at the error
-		// return? I think so, since the parser will do recovery/synchronisation and
-		// try to log as many errors as possible. Once this is implemented, perhaps
-		// the Parse method should return an error at all?
+	e := parser.Parse()
+	if HadError {
 		return
 	}
 

@@ -12,6 +12,8 @@ func (e *Binary) expr()   {}
 func (e *Grouping) expr() {}
 func (e *Literal) expr()  {}
 func (e *Unary) expr()    {}
+func (e *Variable) expr() {}
+func (e *Assign) expr()   {}
 
 type Binary struct {
 	Left     Expr
@@ -30,4 +32,13 @@ type Literal struct {
 type Unary struct {
 	Operator *tok.Token
 	Right    Expr
+}
+
+type Variable struct {
+	Name *tok.Token
+}
+
+type Assign struct {
+	Name  *tok.Token
+	Value Expr
 }
