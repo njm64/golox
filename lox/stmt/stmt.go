@@ -13,6 +13,8 @@ func (s *Expression) stmt() {}
 func (s *Print) stmt()      {}
 func (s *Var) stmt()        {}
 func (s *Block) stmt()      {}
+func (s *If) stmt()         {}
+func (s *While) stmt()      {}
 
 type Expression struct {
 	Expression expr.Expr
@@ -29,4 +31,15 @@ type Var struct {
 
 type Block struct {
 	Statements []Stmt
+}
+
+type If struct {
+	Condition  expr.Expr
+	ThenBranch Stmt
+	ElseBranch Stmt
+}
+
+type While struct {
+	Condition expr.Expr
+	Body      Stmt
 }

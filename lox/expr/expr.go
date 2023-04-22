@@ -14,6 +14,7 @@ func (e *Literal) expr()  {}
 func (e *Unary) expr()    {}
 func (e *Variable) expr() {}
 func (e *Assign) expr()   {}
+func (e *Logical) expr()  {}
 
 type Binary struct {
 	Left     Expr
@@ -41,4 +42,10 @@ type Variable struct {
 type Assign struct {
 	Name  *tok.Token
 	Value Expr
+}
+
+type Logical struct {
+	Left     Expr
+	Operator *tok.Token
+	Right    Expr
 }

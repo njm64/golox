@@ -2,13 +2,9 @@ package lox
 
 import (
 	"errors"
-	"fmt"
 	"golox/lox/expr"
-	"golox/lox/stmt"
 	"golox/lox/tok"
 )
-
-var currentEnv = NewEnvironment(nil)
 
 func Eval(ex expr.Expr) (any, error) {
 	switch e := ex.(type) {
@@ -18,6 +14,8 @@ func Eval(ex expr.Expr) (any, error) {
 		return Eval(e.Expression)
 	case *expr.Literal:
 		return e.Value, nil
+	case *expr.Logical:
+		return evalLogical(e)
 	case *expr.Unary:
 		return evalUnary(e)
 	case *expr.Variable:
@@ -34,36 +32,6 @@ func Eval(ex expr.Expr) (any, error) {
 		return value, nil
 	default:
 		return nil, errors.New("unhandled expression type")
-	}
-}
-
-func Exec(st stmt.Stmt) error {
-	switch s := st.(type) {
-	case *stmt.Print:
-		val, err := Eval(s.Expression)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%v\n", val)
-		return nil
-	case *stmt.Expression:
-		_, err := Eval(s.Expression)
-		return err
-	case *stmt.Var:
-		var value any
-		var err error
-		if s.Initializer != nil {
-			value, err = Eval(s.Initializer)
-			if err != nil {
-				return err
-			}
-		}
-		currentEnv.Define(s.Name, value)
-		return nil
-	case *stmt.Block:
-		return execBlock(s.Statements, NewEnvironment(currentEnv))
-	default:
-		return errors.New("unhandled statement")
 	}
 }
 
@@ -157,17 +125,21 @@ func evalBinary(e *expr.Binary) (any, error) {
 	}
 }
 
-func execBlock(statements []stmt.Stmt, env *Environment) error {
-	previousEnv := currentEnv
-	currentEnv = env
-	for _, s := range statements {
-		if err := Exec(s); err != nil {
-			currentEnv = previousEnv
-			return err
+func evalLogical(e *expr.Logical) (any, error) {
+	left, err := Eval(e.Left)
+	if err != nil {
+		return nil, err
+	}
+	if e.Operator.Type == tok.Or {
+		if isTruthy(left) {
+			return left, nil
+		}
+	} else {
+		if !isTruthy(left) {
+			return left, nil
 		}
 	}
-	currentEnv = previousEnv
-	return nil
+	return Eval(e.Right)
 }
 
 func checkNumberOperand(tok *tok.Token, operand any) error {

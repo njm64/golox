@@ -47,7 +47,11 @@ func (p *Parser) declaration() stmt.Stmt {
 }
 
 func (p *Parser) statement() (stmt.Stmt, error) {
-	if p.match(tok.Print) {
+	if p.match(tok.If) {
+		return p.ifStatement()
+	} else if p.match(tok.While) {
+		return p.whileStatement()
+	} else if p.match(tok.Print) {
 		return p.printStatement()
 	} else if p.match(tok.LeftBrace) {
 		block, err := p.block()
@@ -58,6 +62,56 @@ func (p *Parser) statement() (stmt.Stmt, error) {
 	} else {
 		return p.expressionStatement()
 	}
+}
+
+func (p *Parser) ifStatement() (stmt.Stmt, error) {
+	_, err := p.consume(tok.LeftParen, "Expect '(' after 'if'")
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(tok.RightParen, "Expect ')' after if condition")
+	if err != nil {
+		return nil, err
+	}
+	thenBranch, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+	var elseBranch stmt.Stmt
+	if p.match(tok.Else) {
+		elseBranch, err = p.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &stmt.If{
+		Condition:  condition,
+		ThenBranch: thenBranch,
+		ElseBranch: elseBranch}, nil
+}
+
+func (p *Parser) whileStatement() (stmt.Stmt, error) {
+	_, err := p.consume(tok.LeftParen, "Expect '(' after 'while'")
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(tok.RightParen, "Expect ')' after while condition")
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+	return &stmt.While{Condition: condition, Body: body}, nil
 }
 
 func (p *Parser) printStatement() (stmt.Stmt, error) {
@@ -122,7 +176,7 @@ func (p *Parser) expression() (expr.Expr, error) {
 }
 
 func (p *Parser) assignment() (expr.Expr, error) {
-	e, err := p.equality()
+	e, err := p.or()
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +196,38 @@ func (p *Parser) assignment() (expr.Expr, error) {
 		}
 	}
 
+	return e, nil
+}
+
+func (p *Parser) or() (expr.Expr, error) {
+	e, err := p.and()
+	if err != nil {
+		return nil, err
+	}
+	for p.match(tok.Or) {
+		op := p.previous()
+		right, err := p.and()
+		if err != nil {
+			return nil, err
+		}
+		e = &expr.Logical{Left: e, Operator: op, Right: right}
+	}
+	return e, nil
+}
+
+func (p *Parser) and() (expr.Expr, error) {
+	e, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+	for p.match(tok.And) {
+		op := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+		e = &expr.Logical{Left: e, Operator: op, Right: right}
+	}
 	return e, nil
 }
 

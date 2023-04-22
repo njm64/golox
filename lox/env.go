@@ -2,6 +2,8 @@ package lox
 
 import "golox/lox/tok"
 
+var currentEnv = NewEnvironment(nil)
+
 type Environment struct {
 	enclosing *Environment
 	values    map[string]any
