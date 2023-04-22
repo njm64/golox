@@ -12,6 +12,7 @@ type Stmt interface {
 func (s *Expression) stmt() {}
 func (s *Print) stmt()      {}
 func (s *Var) stmt()        {}
+func (s *Block) stmt()      {}
 
 type Expression struct {
 	Expression expr.Expr
@@ -24,4 +25,8 @@ type Print struct {
 type Var struct {
 	Name        *tok.Token
 	Initializer expr.Expr
+}
+
+type Block struct {
+	Statements []Stmt
 }

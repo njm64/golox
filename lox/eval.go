@@ -8,7 +8,7 @@ import (
 	"golox/lox/tok"
 )
 
-var globalEnv = NewEnvironment()
+var currentEnv = NewEnvironment(nil)
 
 func Eval(ex expr.Expr) (any, error) {
 	switch e := ex.(type) {
@@ -21,13 +21,13 @@ func Eval(ex expr.Expr) (any, error) {
 	case *expr.Unary:
 		return evalUnary(e)
 	case *expr.Variable:
-		return globalEnv.Get(e.Name)
+		return currentEnv.Get(e.Name)
 	case *expr.Assign:
 		value, err := Eval(e.Value)
 		if err != nil {
 			return nil, err
 		}
-		err = globalEnv.Assign(e.Name, value)
+		err = currentEnv.Assign(e.Name, value)
 		if err != nil {
 			return nil, err
 		}
@@ -58,8 +58,10 @@ func Exec(st stmt.Stmt) error {
 				return err
 			}
 		}
-		globalEnv.Define(s.Name, value)
+		currentEnv.Define(s.Name, value)
 		return nil
+	case *stmt.Block:
+		return execBlock(s.Statements, NewEnvironment(currentEnv))
 	default:
 		return errors.New("unhandled statement")
 	}
@@ -153,6 +155,19 @@ func evalBinary(e *expr.Binary) (any, error) {
 	default:
 		return nil, &Error{Token: e.Operator, Message: "unexpected token"}
 	}
+}
+
+func execBlock(statements []stmt.Stmt, env *Environment) error {
+	previousEnv := currentEnv
+	currentEnv = env
+	for _, s := range statements {
+		if err := Exec(s); err != nil {
+			currentEnv = previousEnv
+			return err
+		}
+	}
+	currentEnv = previousEnv
+	return nil
 }
 
 func checkNumberOperand(tok *tok.Token, operand any) error {

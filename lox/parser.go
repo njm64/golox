@@ -20,16 +20,15 @@ func NewParser(tokens []*tok.Token) *Parser {
 func (p *Parser) Parse() []stmt.Stmt {
 	var statements []stmt.Stmt
 	for !p.isAtEnd() {
-		s := p.declaration()
-		if s != nil {
-			statements = append(statements, s)
-			// TODO: Maybe it would be better to move the synchronize call here
-		}
+		statements = append(statements, p.declaration())
 	}
 	return statements
 }
 
 func (p *Parser) declaration() stmt.Stmt {
+	// This method can return a nil statement if parsing fails.
+	// Executing a nil statement would crash, but we should never
+	// attempt to execute the code because it contains parse errors.
 	if p.match(tok.Var) {
 		s, err := p.varDeclaration()
 		if err != nil {
@@ -50,6 +49,12 @@ func (p *Parser) declaration() stmt.Stmt {
 func (p *Parser) statement() (stmt.Stmt, error) {
 	if p.match(tok.Print) {
 		return p.printStatement()
+	} else if p.match(tok.LeftBrace) {
+		block, err := p.block()
+		if err != nil {
+			return nil, err
+		}
+		return &stmt.Block{Statements: block}, nil
 	} else {
 		return p.expressionStatement()
 	}
@@ -95,6 +100,21 @@ func (p *Parser) expressionStatement() (stmt.Stmt, error) {
 		return nil, err
 	}
 	return &stmt.Expression{Expression: value}, nil
+}
+
+func (p *Parser) block() ([]stmt.Stmt, error) {
+	var statements []stmt.Stmt
+
+	for !p.check(tok.RightBrace) && !p.isAtEnd() {
+		statements = append(statements, p.declaration())
+	}
+
+	_, err := p.consume(tok.RightBrace, "Expect '}' after block")
+	if err != nil {
+		return nil, err
+	}
+
+	return statements, nil
 }
 
 func (p *Parser) expression() (expr.Expr, error) {
