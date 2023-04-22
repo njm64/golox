@@ -104,6 +104,12 @@ func evalBinary(e *expr.Binary) (any, error) {
 			return nil, err
 		}
 		return left.(float64) / right.(float64), nil
+	case tok.Percent:
+		err = checkNumberOperands(e.Operator, left, right)
+		if err != nil {
+			return nil, err
+		}
+		return float64(int(left.(float64)) % int(right.(float64))), nil
 	case tok.Star:
 		err = checkNumberOperands(e.Operator, left, right)
 		if err != nil {

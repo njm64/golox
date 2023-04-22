@@ -18,6 +18,7 @@ const (
 	Semicolon
 	Slash
 	Star
+	Percent
 
 	// One or two character tokens
 
@@ -82,6 +83,8 @@ func (t Type) String() string {
 		return "SLASH"
 	case Star:
 		return "STAR"
+	case Percent:
+		return "PERCENT"
 	case Bang:
 		return "BANG"
 	case BangEqual:

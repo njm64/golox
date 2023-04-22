@@ -284,7 +284,7 @@ func (p *Parser) factor() (expr.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	for p.match(tok.Slash, tok.Star) {
+	for p.match(tok.Slash, tok.Star, tok.Percent) {
 		op := p.previous()
 		right, err := p.unary()
 		if err != nil {
