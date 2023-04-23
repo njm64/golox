@@ -1,7 +1,6 @@
 package lox
 
 import (
-	"errors"
 	"fmt"
 	"golox/lox/ast"
 )
@@ -28,8 +27,10 @@ func Exec(st ast.Stmt) error {
 		return execBlock(s.Statements, NewEnvironment(currentEnv))
 	case *ast.Function:
 		return execFunction(s)
+	case *ast.Return:
+		return execReturn(s)
 	default:
-		return errors.New("unhandled statement")
+		return fmt.Errorf("unhandled statement %v", st)
 	}
 }
 
@@ -40,9 +41,10 @@ func execIf(s *ast.If) error {
 	}
 	if isTruthy(condition) {
 		return Exec(s.ThenBranch)
-	} else {
+	} else if s.ElseBranch != nil {
 		return Exec(s.ElseBranch)
 	}
+	return nil
 }
 
 func execWhile(s *ast.While) error {
@@ -87,6 +89,16 @@ func execBlock(statements []ast.Stmt, env *Environment) error {
 }
 
 func execFunction(f *ast.Function) error {
-	currentEnv.Define(f.Name.Lexeme, &Function{Declaration: f})
+	currentEnv.Define(f.Name.Lexeme, &Function{
+		Declaration: f,
+		Closure:     currentEnv})
 	return nil
+}
+
+func execReturn(f *ast.Return) error {
+	result, err := Eval(f.Value)
+	if err != nil {
+		return err
+	}
+	return &Return{Value: result}
 }

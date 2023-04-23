@@ -56,6 +56,8 @@ func (p *Parser) statement() (ast.Stmt, error) {
 		return p.forStatement()
 	} else if p.match(tok.Print) {
 		return p.printStatement()
+	} else if p.match(tok.Return) {
+		return p.returnStatement()
 	} else if p.match(tok.LeftBrace) {
 		block, err := p.block()
 		if err != nil {
@@ -239,6 +241,29 @@ func (p *Parser) expressionStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 	return &ast.Expression{Expression: value}, nil
+}
+
+func (p *Parser) returnStatement() (ast.Stmt, error) {
+	keyword := p.previous()
+
+	var value ast.Expr
+	if !p.check(tok.Semicolon) {
+		var err error
+		value, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err := p.consume(tok.Semicolon, "Expect ';' after return value")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.Return{
+		Keyword: keyword,
+		Value:   value,
+	}, nil
 }
 
 func (p *Parser) function(kind string) (ast.Stmt, error) {

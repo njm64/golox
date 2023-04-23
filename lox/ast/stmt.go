@@ -15,6 +15,7 @@ func (s *Block) stmt()      {}
 func (s *If) stmt()         {}
 func (s *While) stmt()      {}
 func (e *Function) stmt()   {}
+func (e *Return) stmt()     {}
 
 type Expression struct {
 	Expression Expr
@@ -48,4 +49,9 @@ type Function struct {
 	Name   *tok.Token
 	Params []*tok.Token
 	Body   []Stmt
+}
+
+type Return struct {
+	Keyword *tok.Token
+	Value   Expr
 }

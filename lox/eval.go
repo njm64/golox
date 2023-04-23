@@ -110,7 +110,7 @@ func evalBinary(e *ast.Binary) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		return left.(float64) + right.(float64), nil
+		return left.(float64) * right.(float64), nil
 	case tok.Plus:
 		if isNumber(left) && isNumber(right) {
 			return left.(float64) + right.(float64), nil
