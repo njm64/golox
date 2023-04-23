@@ -2,40 +2,35 @@ package lox
 
 import (
 	"errors"
-	"golox/lox/expr"
+	"fmt"
+	"golox/lox/ast"
 	"golox/lox/tok"
 )
 
-func Eval(ex expr.Expr) (any, error) {
+func Eval(ex ast.Expr) (any, error) {
 	switch e := ex.(type) {
-	case *expr.Binary:
+	case *ast.Binary:
 		return evalBinary(e)
-	case *expr.Grouping:
+	case *ast.Grouping:
 		return Eval(e.Expression)
-	case *expr.Literal:
+	case *ast.Literal:
 		return e.Value, nil
-	case *expr.Logical:
+	case *ast.Logical:
 		return evalLogical(e)
-	case *expr.Unary:
+	case *ast.Unary:
 		return evalUnary(e)
-	case *expr.Variable:
+	case *ast.Variable:
 		return currentEnv.Get(e.Name)
-	case *expr.Assign:
-		value, err := Eval(e.Value)
-		if err != nil {
-			return nil, err
-		}
-		err = currentEnv.Assign(e.Name, value)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
+	case *ast.Assign:
+		return evalAssign(e)
+	case *ast.Call:
+		return evalCall(e)
 	default:
 		return nil, errors.New("unhandled expression type")
 	}
 }
 
-func evalUnary(e *expr.Unary) (any, error) {
+func evalUnary(e *ast.Unary) (any, error) {
 	right, err := Eval(e.Right)
 	if err != nil {
 		return nil, err
@@ -54,7 +49,7 @@ func evalUnary(e *expr.Unary) (any, error) {
 	}
 }
 
-func evalBinary(e *expr.Binary) (any, error) {
+func evalBinary(e *ast.Binary) (any, error) {
 	left, err := Eval(e.Left)
 	if err != nil {
 		return nil, err
@@ -131,7 +126,19 @@ func evalBinary(e *expr.Binary) (any, error) {
 	}
 }
 
-func evalLogical(e *expr.Logical) (any, error) {
+func evalAssign(e *ast.Assign) (any, error) {
+	value, err := Eval(e.Value)
+	if err != nil {
+		return nil, err
+	}
+	err = currentEnv.Assign(e.Name, value)
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func evalLogical(e *ast.Logical) (any, error) {
 	left, err := Eval(e.Left)
 	if err != nil {
 		return nil, err
@@ -146,6 +153,40 @@ func evalLogical(e *expr.Logical) (any, error) {
 		}
 	}
 	return Eval(e.Right)
+}
+
+func evalCall(e *ast.Call) (any, error) {
+	callee, err := Eval(e.Callee)
+	if err != nil {
+		return nil, err
+	}
+
+	var arguments []any
+	for _, a := range e.Arguments {
+		arg, err := Eval(a)
+		if err != nil {
+			return nil, err
+		}
+		arguments = append(arguments, arg)
+	}
+
+	f, ok := callee.(Callable)
+	if !ok {
+		return nil, &Error{
+			Token:   e.Paren,
+			Message: "Can only call functions and classes",
+		}
+	}
+
+	if len(arguments) != f.Arity() {
+		return nil, &Error{
+			Token: e.Paren,
+			Message: fmt.Sprintf("Expected %d arguments but got %d",
+				f.Arity(), len(arguments)),
+		}
+	}
+
+	return f.Call(arguments)
 }
 
 func checkNumberOperand(tok *tok.Token, operand any) error {

@@ -3,11 +3,11 @@ package lox
 import (
 	"bufio"
 	"fmt"
-	"golox/lox/stmt"
+	"golox/lox/ast"
 	"os"
 )
 
-func interpret(statements []stmt.Stmt) {
+func interpret(statements []ast.Stmt) {
 	for _, s := range statements {
 		err := Exec(s)
 		if err != nil {

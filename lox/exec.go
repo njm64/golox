@@ -3,35 +3,35 @@ package lox
 import (
 	"errors"
 	"fmt"
-	"golox/lox/stmt"
+	"golox/lox/ast"
 )
 
-func Exec(st stmt.Stmt) error {
+func Exec(st ast.Stmt) error {
 	switch s := st.(type) {
-	case *stmt.Print:
+	case *ast.Print:
 		val, err := Eval(s.Expression)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("%v\n", val)
 		return nil
-	case *stmt.Expression:
+	case *ast.Expression:
 		_, err := Eval(s.Expression)
 		return err
-	case *stmt.If:
+	case *ast.If:
 		return execIf(s)
-	case *stmt.While:
+	case *ast.While:
 		return execWhile(s)
-	case *stmt.Var:
+	case *ast.Var:
 		return execVar(s)
-	case *stmt.Block:
+	case *ast.Block:
 		return execBlock(s.Statements, NewEnvironment(currentEnv))
 	default:
 		return errors.New("unhandled statement")
 	}
 }
 
-func execIf(s *stmt.If) error {
+func execIf(s *ast.If) error {
 	condition, err := Eval(s.Condition)
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func execIf(s *stmt.If) error {
 	}
 }
 
-func execWhile(s *stmt.While) error {
+func execWhile(s *ast.While) error {
 	for {
 		condition, err := Eval(s.Condition)
 		if err != nil {
@@ -58,7 +58,7 @@ func execWhile(s *stmt.While) error {
 	}
 }
 
-func execVar(s *stmt.Var) error {
+func execVar(s *ast.Var) error {
 	var value any
 	var err error
 	if s.Initializer != nil {
@@ -67,11 +67,11 @@ func execVar(s *stmt.Var) error {
 			return err
 		}
 	}
-	currentEnv.Define(s.Name, value)
+	currentEnv.Define(s.Name.Lexeme, value)
 	return nil
 }
 
-func execBlock(statements []stmt.Stmt, env *Environment) error {
+func execBlock(statements []ast.Stmt, env *Environment) error {
 	previousEnv := currentEnv
 	currentEnv = env
 	for _, s := range statements {

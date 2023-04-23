@@ -1,4 +1,4 @@
-package expr
+package ast
 
 import (
 	"golox/lox/tok"
@@ -15,6 +15,7 @@ func (e *Unary) expr()    {}
 func (e *Variable) expr() {}
 func (e *Assign) expr()   {}
 func (e *Logical) expr()  {}
+func (e *Call) expr()     {}
 
 type Binary struct {
 	Left     Expr
@@ -48,4 +49,16 @@ type Logical struct {
 	Left     Expr
 	Operator *tok.Token
 	Right    Expr
+}
+
+type Call struct {
+	Callee    Expr
+	Paren     *tok.Token
+	Arguments []Expr
+}
+
+type Function struct {
+	Name   *tok.Token
+	Params []*tok.Token
+	Body   []Stmt
 }

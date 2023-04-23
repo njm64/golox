@@ -2,7 +2,8 @@ package lox
 
 import "golox/lox/tok"
 
-var currentEnv = NewEnvironment(nil)
+var globalEnv = NewEnvironment(nil)
+var currentEnv = globalEnv
 
 type Environment struct {
 	enclosing *Environment
@@ -16,8 +17,8 @@ func NewEnvironment(enclosing *Environment) *Environment {
 	}
 }
 
-func (e *Environment) Define(name *tok.Token, value any) {
-	e.values[name.Lexeme] = value
+func (e *Environment) Define(name string, value any) {
+	e.values[name] = value
 }
 
 func (e *Environment) Get(name *tok.Token) (any, error) {

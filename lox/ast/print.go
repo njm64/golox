@@ -1,11 +1,11 @@
-package expr
+package ast
 
 import (
 	"fmt"
 	"strings"
 )
 
-func Print(expr Expr) string {
+func PrintExpr(expr Expr) string {
 	switch e := expr.(type) {
 	case *Binary:
 		return parenthesize(e.Operator.Lexeme, e.Left, e.Right)
@@ -30,7 +30,7 @@ func parenthesize(name string, es ...Expr) string {
 	sb.WriteString(name)
 	for _, e := range es {
 		sb.WriteRune(' ')
-		sb.WriteString(Print(e))
+		sb.WriteString(PrintExpr(e))
 	}
 	sb.WriteRune(')')
 	return sb.String()
