@@ -26,6 +26,8 @@ func Exec(st ast.Stmt) error {
 		return execVar(s)
 	case *ast.Block:
 		return execBlock(s.Statements, NewEnvironment(currentEnv))
+	case *ast.Function:
+		return execFunction(s)
 	default:
 		return errors.New("unhandled statement")
 	}
@@ -81,5 +83,10 @@ func execBlock(statements []ast.Stmt, env *Environment) error {
 		}
 	}
 	currentEnv = previousEnv
+	return nil
+}
+
+func execFunction(f *ast.Function) error {
+	currentEnv.Define(f.Name.Lexeme, &Function{Declaration: f})
 	return nil
 }

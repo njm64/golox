@@ -25,24 +25,26 @@ func (p *Parser) Parse() []ast.Stmt {
 }
 
 func (p *Parser) declaration() ast.Stmt {
-	// This method can return a nil statement if parsing fails.
-	// Executing a nil statement would crash, but we should never
-	// attempt to execute the code because it contains parse errors.
-	if p.match(tok.Var) {
-		s, err := p.varDeclaration()
-		if err != nil {
-			p.synchronize()
-			return nil
-		}
-		return s
+	var s ast.Stmt
+	var err error
+
+	if p.match(tok.Fun) {
+		s, err = p.function("function")
+	} else if p.match(tok.Var) {
+		s, err = p.varDeclaration()
 	} else {
-		s, err := p.statement()
-		if err != nil {
-			p.synchronize()
-			return nil
-		}
-		return s
+		s, err = p.statement()
 	}
+
+	if err != nil {
+		p.synchronize()
+		// Return a nil statement if parsing fails. Executing a nil statement
+		// would crash, but we should never attempt to execute the code
+		// because it contains parse errors.
+		return nil
+	}
+
+	return s
 }
 
 func (p *Parser) statement() (ast.Stmt, error) {
@@ -237,6 +239,54 @@ func (p *Parser) expressionStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 	return &ast.Expression{Expression: value}, nil
+}
+
+func (p *Parser) function(kind string) (ast.Stmt, error) {
+	name, err := p.consume(tok.Identifier, "Expect "+kind+" name")
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(tok.LeftParen, "Expect '(' after "+kind+" name")
+	if err != nil {
+		return nil, err
+	}
+	var params []*tok.Token
+	if !p.check(tok.RightParen) {
+		for {
+			if len(params) >= 255 {
+				return nil, p.error(p.peek(), "Can't have more than 255 parameters")
+			}
+
+			param, err := p.consume(tok.Identifier, "Expect parameter name")
+			if err != nil {
+				return nil, err
+			}
+			params = append(params, param)
+			if !p.match(tok.Comma) {
+				break
+			}
+		}
+	}
+	_, err = p.consume(tok.RightParen, "Expect ')' after parameters")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(tok.LeftBrace, "Expect '{' before "+kind+" body")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.Function{
+		Name:   name,
+		Params: params,
+		Body:   body,
+	}, nil
 }
 
 func (p *Parser) block() ([]ast.Stmt, error) {

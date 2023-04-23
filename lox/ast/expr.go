@@ -56,9 +56,3 @@ type Call struct {
 	Paren     *tok.Token
 	Arguments []Expr
 }
-
-type Function struct {
-	Name   *tok.Token
-	Params []*tok.Token
-	Body   []Stmt
-}

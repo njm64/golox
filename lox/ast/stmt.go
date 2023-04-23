@@ -14,6 +14,7 @@ func (s *Var) stmt()        {}
 func (s *Block) stmt()      {}
 func (s *If) stmt()         {}
 func (s *While) stmt()      {}
+func (e *Function) stmt()   {}
 
 type Expression struct {
 	Expression Expr
@@ -41,4 +42,10 @@ type If struct {
 type While struct {
 	Condition Expr
 	Body      Stmt
+}
+
+type Function struct {
+	Name   *tok.Token
+	Params []*tok.Token
+	Body   []Stmt
 }
