@@ -29,6 +29,8 @@ func Exec(st stmt.Stmt) error {
 		return execFunction(s)
 	case *stmt.Return:
 		return execReturn(s)
+	case *stmt.Class:
+		return execClass(s)
 	default:
 		return fmt.Errorf("unhandled statement %v", st)
 	}
@@ -88,17 +90,25 @@ func execBlock(statements []stmt.Stmt, env *Environment) error {
 	return nil
 }
 
-func execFunction(f *stmt.Function) error {
-	currentEnv.Define(f.Name.Lexeme, &Function{
-		Declaration: f,
+func execFunction(s *stmt.Function) error {
+	currentEnv.Define(s.Name.Lexeme, &Function{
+		Declaration: s,
 		Closure:     currentEnv})
 	return nil
 }
 
-func execReturn(f *stmt.Return) error {
-	result, err := Eval(f.Value)
+func execReturn(s *stmt.Return) error {
+	result, err := Eval(s.Value)
 	if err != nil {
 		return err
 	}
 	return &Return{Value: result}
+}
+
+func execClass(s *stmt.Class) error {
+	currentEnv.Define(s.Name.Lexeme, nil)
+	class := &Class{
+		Name: s.Name.Lexeme,
+	}
+	return currentEnv.Assign(s.Name, class)
 }

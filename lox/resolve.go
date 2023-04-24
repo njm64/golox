@@ -61,6 +61,8 @@ func (r *Resolver) ResolveStatement(st stmt.Stmt) {
 	case *stmt.While:
 		r.ResolveExpression(s.Condition)
 		r.ResolveStatement(s.Body)
+	case *stmt.Class:
+		r.classStmt(s)
 	}
 }
 
@@ -74,6 +76,12 @@ func (r *Resolver) returnStmt(s *stmt.Return) {
 	if s.Value != nil {
 		r.ResolveExpression(s.Value)
 	}
+}
+
+func (r *Resolver) classStmt(s *stmt.Class) {
+	r.declare(s.Name)
+	r.define(s.Name)
+	// TODO: Methods
 }
 
 func (r *Resolver) ResolveExpression(ex expr.Expr) {
@@ -99,6 +107,8 @@ func (r *Resolver) ResolveExpression(ex expr.Expr) {
 		r.ResolveExpression(e.Right)
 	case *expr.Unary:
 		r.ResolveExpression(e.Right)
+	case *expr.Get:
+		r.ResolveExpression(e.Object)
 	}
 }
 

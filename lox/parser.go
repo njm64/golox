@@ -29,7 +29,9 @@ func (p *Parser) declaration() stmt.Stmt {
 	var s stmt.Stmt
 	var err error
 
-	if p.match(tok.Fun) {
+	if p.match(tok.Class) {
+		s, err = p.classDeclaration()
+	} else if p.match(tok.Fun) {
 		s, err = p.function("function")
 	} else if p.match(tok.Var) {
 		s, err = p.varDeclaration()
@@ -46,6 +48,37 @@ func (p *Parser) declaration() stmt.Stmt {
 	}
 
 	return s
+}
+
+func (p *Parser) classDeclaration() (stmt.Stmt, error) {
+	name, err := p.consume(tok.Identifier, "Expect class name")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(tok.LeftBrace, "Expect '{' after class name")
+	if err != nil {
+		return nil, err
+	}
+
+	var methods []*stmt.Function
+	for !p.check(tok.RightBrace) && !p.isAtEnd() {
+		f, err := p.function("method")
+		if err != nil {
+			return nil, err
+		}
+		methods = append(methods, f)
+	}
+
+	_, err = p.consume(tok.RightBrace, "Expect '}' after class body")
+	if err != nil {
+		return nil, err
+	}
+
+	return &stmt.Class{
+		Name:    name,
+		Methods: methods,
+	}, nil
 }
 
 func (p *Parser) statement() (stmt.Stmt, error) {
@@ -267,7 +300,7 @@ func (p *Parser) returnStatement() (stmt.Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) function(kind string) (stmt.Stmt, error) {
+func (p *Parser) function(kind string) (*stmt.Function, error) {
 	name, err := p.consume(tok.Identifier, "Expect "+kind+" name")
 	if err != nil {
 		return nil, err
@@ -347,12 +380,23 @@ func (p *Parser) assignment() (expr.Expr, error) {
 			return nil, err
 		}
 
-		variable, ok := e.(*expr.Variable)
+		variableExpr, ok := e.(*expr.Variable)
 		if ok {
-			return &expr.Assign{Name: variable.Name, Value: value}, nil
-		} else {
-			return nil, &Error{Token: equals, Message: "Invalid assignment target"}
+			return &expr.Assign{
+				Name:  variableExpr.Name,
+				Value: value}, nil
 		}
+
+		getExpr, ok := e.(*expr.Get)
+		if ok {
+			return &expr.Set{
+				Object: getExpr.Object,
+				Name:   getExpr.Name,
+				Value:  value,
+			}, nil
+		}
+
+		return nil, &Error{Token: equals, Message: "Invalid assignment target"}
 	}
 
 	return e, nil
@@ -476,6 +520,15 @@ func (p *Parser) call() (expr.Expr, error) {
 			e, err = p.finishCall(e)
 			if err != nil {
 				return nil, err
+			}
+		} else if p.match(tok.Dot) {
+			name, err := p.consume(tok.Identifier, "Expect property name after '.'")
+			if err != nil {
+				return nil, err
+			}
+			e = &expr.Get{
+				Object: e,
+				Name:   name,
 			}
 		} else {
 			break

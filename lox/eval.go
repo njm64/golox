@@ -25,6 +25,10 @@ func Eval(ex expr.Expr) (any, error) {
 		return evalAssign(e)
 	case *expr.Call:
 		return evalCall(e)
+	case *expr.Get:
+		return evalGet(e)
+	case *expr.Set:
+		return evalSet(e)
 	default:
 		return nil, errors.New("unhandled expression type")
 	}
@@ -202,6 +206,46 @@ func evalCall(e *expr.Call) (any, error) {
 	}
 
 	return f.Call(arguments)
+}
+
+func evalGet(e *expr.Get) (any, error) {
+	object, err := Eval(e.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	instance, ok := object.(*Instance)
+	if !ok {
+		return nil, &Error{
+			Token:   e.Name,
+			Message: "Only instances have properties",
+		}
+	}
+
+	return instance.Get(e.Name)
+}
+
+func evalSet(e *expr.Set) (any, error) {
+	object, err := Eval(e.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	instance, ok := object.(*Instance)
+	if !ok {
+		return nil, &Error{
+			Token:   e.Name,
+			Message: "Only instances have fields",
+		}
+	}
+
+	value, err := Eval(e.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.Set(e.Name, value)
+	return nil, nil
 }
 
 func checkNumberOperand(tok *tok.Token, operand any) error {

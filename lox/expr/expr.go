@@ -16,6 +16,8 @@ func (e *Variable) expr() {}
 func (e *Assign) expr()   {}
 func (e *Logical) expr()  {}
 func (e *Call) expr()     {}
+func (e *Get) expr()      {}
+func (e *Set) expr()      {}
 
 type Binary struct {
 	Left     Expr
@@ -55,4 +57,15 @@ type Call struct {
 	Callee    Expr
 	Paren     *tok.Token
 	Arguments []Expr
+}
+
+type Get struct {
+	Object Expr
+	Name   *tok.Token
+}
+
+type Set struct {
+	Object Expr
+	Name   *tok.Token
+	Value  Expr
 }

@@ -17,6 +17,7 @@ func (s *If) stmt()         {}
 func (s *While) stmt()      {}
 func (e *Function) stmt()   {}
 func (e *Return) stmt()     {}
+func (e *Class) stmt()      {}
 
 type Expression struct {
 	Expression expr.Expr
@@ -55,4 +56,9 @@ type Function struct {
 type Return struct {
 	Keyword *tok.Token
 	Value   expr.Expr
+}
+
+type Class struct {
+	Name    *tok.Token
+	Methods []*Function
 }
