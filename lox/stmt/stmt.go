@@ -1,6 +1,7 @@
-package ast
+package stmt
 
 import (
+	"golox/lox/expr"
 	"golox/lox/tok"
 )
 
@@ -18,16 +19,16 @@ func (e *Function) stmt()   {}
 func (e *Return) stmt()     {}
 
 type Expression struct {
-	Expression Expr
+	Expression expr.Expr
 }
 
 type Print struct {
-	Expression Expr
+	Expression expr.Expr
 }
 
 type Var struct {
 	Name        *tok.Token
-	Initializer Expr
+	Initializer expr.Expr
 }
 
 type Block struct {
@@ -35,13 +36,13 @@ type Block struct {
 }
 
 type If struct {
-	Condition  Expr
+	Condition  expr.Expr
 	ThenBranch Stmt
 	ElseBranch Stmt
 }
 
 type While struct {
-	Condition Expr
+	Condition expr.Expr
 	Body      Stmt
 }
 
@@ -53,5 +54,5 @@ type Function struct {
 
 type Return struct {
 	Keyword *tok.Token
-	Value   Expr
+	Value   expr.Expr
 }

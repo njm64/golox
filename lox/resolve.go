@@ -1,7 +1,8 @@
 package lox
 
 import (
-	"golox/lox/ast"
+	"golox/lox/expr"
+	"golox/lox/stmt"
 	"golox/lox/tok"
 )
 
@@ -15,75 +16,75 @@ func NewResolver() *Resolver {
 	return &Resolver{}
 }
 
-func (r *Resolver) ResolveStatements(statements []ast.Stmt) {
+func (r *Resolver) ResolveStatements(statements []stmt.Stmt) {
 	for _, st := range statements {
 		r.ResolveStatement(st)
 	}
 }
 
-func (r *Resolver) ResolveStatement(st ast.Stmt) {
+func (r *Resolver) ResolveStatement(st stmt.Stmt) {
 	switch s := st.(type) {
-	case *ast.Function:
+	case *stmt.Function:
 		r.declare(s.Name)
 		r.define(s.Name)
 		r.resolveFunction(s)
-	case *ast.Block:
+	case *stmt.Block:
 		r.beginScope()
 		r.ResolveStatements(s.Statements)
 		r.endScope()
-	case *ast.Var:
+	case *stmt.Var:
 		r.declare(s.Name)
 		if s.Initializer != nil {
 			r.ResolveExpression(s.Initializer)
 		}
 		r.define(s.Name)
-	case *ast.Expression:
+	case *stmt.Expression:
 		r.ResolveExpression(s.Expression)
-	case *ast.If:
+	case *stmt.If:
 		r.ResolveExpression(s.Condition)
 		r.ResolveStatement(s.ThenBranch)
 		if s.ElseBranch != nil {
 			r.ResolveStatement(s.ElseBranch)
 		}
-	case *ast.Print:
+	case *stmt.Print:
 		r.ResolveExpression(s.Expression)
-	case *ast.Return:
+	case *stmt.Return:
 		if s.Value != nil {
 			r.ResolveExpression(s.Value)
 		}
-	case *ast.While:
+	case *stmt.While:
 		r.ResolveExpression(s.Condition)
 		r.ResolveStatement(s.Body)
 	}
 }
 
-func (r *Resolver) ResolveExpression(ex ast.Expr) {
+func (r *Resolver) ResolveExpression(ex expr.Expr) {
 	switch e := ex.(type) {
-	case *ast.Variable:
+	case *expr.Variable:
 		r.variableExpr(e)
-	case *ast.Assign:
+	case *expr.Assign:
 		r.ResolveExpression(e.Value)
 		r.resolveLocal(e, e.Name)
-	case *ast.Binary:
+	case *expr.Binary:
 		r.ResolveExpression(e.Left)
 		r.ResolveExpression(e.Right)
-	case *ast.Call:
+	case *expr.Call:
 		r.ResolveExpression(e.Callee)
 		for _, arg := range e.Arguments {
 			r.ResolveExpression(arg)
 		}
-	case *ast.Grouping:
+	case *expr.Grouping:
 		r.ResolveExpression(e.Expression)
-	case *ast.Literal:
-	case *ast.Logical:
+	case *expr.Literal:
+	case *expr.Logical:
 		r.ResolveExpression(e.Left)
 		r.ResolveExpression(e.Right)
-	case *ast.Unary:
+	case *expr.Unary:
 		r.ResolveExpression(e.Right)
 	}
 }
 
-func (r *Resolver) variableExpr(e *ast.Variable) {
+func (r *Resolver) variableExpr(e *expr.Variable) {
 	if len(r.scopes) > 0 {
 		defined, declared := r.peekScope()[e.Name.Lexeme]
 		if declared && !defined {
@@ -93,7 +94,7 @@ func (r *Resolver) variableExpr(e *ast.Variable) {
 	r.resolveLocal(e, e.Name)
 }
 
-func (r *Resolver) resolveLocal(e ast.Expr, name *tok.Token) {
+func (r *Resolver) resolveLocal(e expr.Expr, name *tok.Token) {
 	for i := len(r.scopes) - 1; i >= 0; i-- {
 		_, declared := r.scopes[i][name.Lexeme]
 		if declared {
@@ -103,7 +104,7 @@ func (r *Resolver) resolveLocal(e ast.Expr, name *tok.Token) {
 	}
 }
 
-func (r *Resolver) resolveFunction(s *ast.Function) {
+func (r *Resolver) resolveFunction(s *stmt.Function) {
 	r.beginScope()
 	for _, param := range s.Params {
 		r.declare(param)

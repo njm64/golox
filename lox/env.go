@@ -1,13 +1,13 @@
 package lox
 
 import (
-	"golox/lox/ast"
+	"golox/lox/expr"
 	"golox/lox/tok"
 )
 
 var globalEnv = NewEnvironment(nil)
 var currentEnv = globalEnv
-var depthMap = make(map[ast.Expr]int)
+var depthMap = make(map[expr.Expr]int)
 
 type Environment struct {
 	enclosing *Environment

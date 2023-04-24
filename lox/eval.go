@@ -3,34 +3,34 @@ package lox
 import (
 	"errors"
 	"fmt"
-	"golox/lox/ast"
+	"golox/lox/expr"
 	"golox/lox/tok"
 )
 
-func Eval(ex ast.Expr) (any, error) {
+func Eval(ex expr.Expr) (any, error) {
 	switch e := ex.(type) {
-	case *ast.Binary:
+	case *expr.Binary:
 		return evalBinary(e)
-	case *ast.Grouping:
+	case *expr.Grouping:
 		return Eval(e.Expression)
-	case *ast.Literal:
+	case *expr.Literal:
 		return e.Value, nil
-	case *ast.Logical:
+	case *expr.Logical:
 		return evalLogical(e)
-	case *ast.Unary:
+	case *expr.Unary:
 		return evalUnary(e)
-	case *ast.Variable:
+	case *expr.Variable:
 		return lookupVariable(e.Name, e)
-	case *ast.Assign:
+	case *expr.Assign:
 		return evalAssign(e)
-	case *ast.Call:
+	case *expr.Call:
 		return evalCall(e)
 	default:
 		return nil, errors.New("unhandled expression type")
 	}
 }
 
-func lookupVariable(name *tok.Token, e ast.Expr) (any, error) {
+func lookupVariable(name *tok.Token, e expr.Expr) (any, error) {
 	distance, ok := depthMap[e]
 	if ok {
 		return currentEnv.GetAt(distance, name)
@@ -39,7 +39,7 @@ func lookupVariable(name *tok.Token, e ast.Expr) (any, error) {
 	}
 }
 
-func evalUnary(e *ast.Unary) (any, error) {
+func evalUnary(e *expr.Unary) (any, error) {
 	right, err := Eval(e.Right)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func evalUnary(e *ast.Unary) (any, error) {
 	}
 }
 
-func evalBinary(e *ast.Binary) (any, error) {
+func evalBinary(e *expr.Binary) (any, error) {
 	left, err := Eval(e.Left)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func evalBinary(e *ast.Binary) (any, error) {
 	}
 }
 
-func evalAssign(e *ast.Assign) (any, error) {
+func evalAssign(e *expr.Assign) (any, error) {
 	value, err := Eval(e.Value)
 	if err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func evalAssign(e *ast.Assign) (any, error) {
 	return value, nil
 }
 
-func evalLogical(e *ast.Logical) (any, error) {
+func evalLogical(e *expr.Logical) (any, error) {
 	left, err := Eval(e.Left)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func evalLogical(e *ast.Logical) (any, error) {
 	return Eval(e.Right)
 }
 
-func evalCall(e *ast.Call) (any, error) {
+func evalCall(e *expr.Call) (any, error) {
 	callee, err := Eval(e.Callee)
 	if err != nil {
 		return nil, err

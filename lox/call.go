@@ -1,6 +1,8 @@
 package lox
 
-import "golox/lox/ast"
+import (
+	"golox/lox/stmt"
+)
 
 type Callable interface {
 	Arity() int
@@ -18,7 +20,7 @@ func (r *Return) Error() string {
 }
 
 type Function struct {
-	Declaration *ast.Function
+	Declaration *stmt.Function
 	Closure     *Environment
 }
 
