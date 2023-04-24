@@ -27,12 +27,18 @@ func run(source string) {
 	tokens := scanner.ScanTokens()
 
 	parser := NewParser(tokens)
-	e := parser.Parse()
+	statements := parser.Parse()
 	if HadError {
 		return
 	}
 
-	interpret(e)
+	resolver := NewResolver()
+	resolver.ResolveStatements(statements)
+	if HadError {
+		return
+	}
+
+	interpret(statements)
 }
 
 func RunFile(path string) error {

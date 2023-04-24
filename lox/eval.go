@@ -20,13 +20,22 @@ func Eval(ex ast.Expr) (any, error) {
 	case *ast.Unary:
 		return evalUnary(e)
 	case *ast.Variable:
-		return currentEnv.Get(e.Name)
+		return lookupVariable(e.Name, e)
 	case *ast.Assign:
 		return evalAssign(e)
 	case *ast.Call:
 		return evalCall(e)
 	default:
 		return nil, errors.New("unhandled expression type")
+	}
+}
+
+func lookupVariable(name *tok.Token, e ast.Expr) (any, error) {
+	distance, ok := depthMap[e]
+	if ok {
+		return currentEnv.GetAt(distance, name)
+	} else {
+		return globalEnv.Get(name)
 	}
 }
 
@@ -131,10 +140,16 @@ func evalAssign(e *ast.Assign) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = currentEnv.Assign(e.Name, value)
-	if err != nil {
-		return nil, err
+	distance, ok := depthMap[e]
+	if ok {
+		currentEnv.AssignAt(distance, e.Name, value)
+	} else {
+		err = globalEnv.Assign(e.Name, value)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	return value, nil
 }
 
