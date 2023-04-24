@@ -8,8 +8,16 @@ import (
 
 type Scope map[string]bool
 
+type FunctionType int
+
+const (
+	FunctionTypeNone FunctionType = iota
+	FunctionTypeFunction
+)
+
 type Resolver struct {
-	scopes []Scope
+	scopes          []Scope
+	currentFunction FunctionType
 }
 
 func NewResolver() *Resolver {
@@ -27,7 +35,7 @@ func (r *Resolver) ResolveStatement(st stmt.Stmt) {
 	case *stmt.Function:
 		r.declare(s.Name)
 		r.define(s.Name)
-		r.resolveFunction(s)
+		r.resolveFunction(s, FunctionTypeFunction)
 	case *stmt.Block:
 		r.beginScope()
 		r.ResolveStatements(s.Statements)
@@ -49,12 +57,22 @@ func (r *Resolver) ResolveStatement(st stmt.Stmt) {
 	case *stmt.Print:
 		r.ResolveExpression(s.Expression)
 	case *stmt.Return:
-		if s.Value != nil {
-			r.ResolveExpression(s.Value)
-		}
+		r.returnStmt(s)
 	case *stmt.While:
 		r.ResolveExpression(s.Condition)
 		r.ResolveStatement(s.Body)
+	}
+}
+
+func (r *Resolver) returnStmt(s *stmt.Return) {
+	if r.currentFunction == FunctionTypeNone {
+		ReportParseError(&Error{
+			Token:   s.Keyword,
+			Message: "Can't return from top-level code",
+		})
+	}
+	if s.Value != nil {
+		r.ResolveExpression(s.Value)
 	}
 }
 
@@ -104,7 +122,9 @@ func (r *Resolver) resolveLocal(e expr.Expr, name *tok.Token) {
 	}
 }
 
-func (r *Resolver) resolveFunction(s *stmt.Function) {
+func (r *Resolver) resolveFunction(s *stmt.Function, ft FunctionType) {
+	enclosingFunction := r.currentFunction
+	r.currentFunction = ft
 	r.beginScope()
 	for _, param := range s.Params {
 		r.declare(param)
@@ -112,6 +132,7 @@ func (r *Resolver) resolveFunction(s *stmt.Function) {
 	}
 	r.ResolveStatements(s.Body)
 	r.endScope()
+	r.currentFunction = enclosingFunction
 }
 
 func (r *Resolver) beginScope() {
@@ -131,7 +152,15 @@ func (r *Resolver) declare(name *tok.Token) {
 		return
 	}
 
-	r.peekScope()[name.Lexeme] = false
+	scope := r.peekScope()
+	_, defined := scope[name.Lexeme]
+	if defined {
+		ReportParseError(&Error{
+			Token:   name,
+			Message: "Already a variable with this name in this scope"})
+	}
+
+	scope[name.Lexeme] = false
 }
 
 func (r *Resolver) define(name *tok.Token) {
