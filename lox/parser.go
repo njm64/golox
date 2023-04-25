@@ -576,6 +576,8 @@ func (p *Parser) primary() (expr.Expr, error) {
 		return &expr.Literal{Value: nil}, nil
 	} else if p.match(tok.Number, tok.String) {
 		return &expr.Literal{Value: p.previous().Literal}, nil
+	} else if p.match(tok.This) {
+		return &expr.This{Keyword: p.previous()}, nil
 	} else if p.match(tok.Identifier) {
 		return &expr.Variable{Name: p.previous()}, nil
 	} else if p.match(tok.LeftParen) {

@@ -91,24 +91,29 @@ func execBlock(statements []stmt.Stmt, env *Environment) error {
 }
 
 func execFunction(s *stmt.Function) error {
-	currentEnv.Define(s.Name.Lexeme, &Function{
-		Declaration: s,
-		Closure:     currentEnv})
+	currentEnv.Define(s.Name.Lexeme, NewFunction(s, currentEnv, false))
 	return nil
 }
 
 func execReturn(s *stmt.Return) error {
-	result, err := Eval(s.Value)
-	if err != nil {
-		return err
+	var result any
+	var err error
+	if s.Value != nil {
+		result, err = Eval(s.Value)
+		if err != nil {
+			return err
+		}
 	}
 	return &Return{Value: result}
 }
 
 func execClass(s *stmt.Class) error {
 	currentEnv.Define(s.Name.Lexeme, nil)
-	class := &Class{
-		Name: s.Name.Lexeme,
+	methods := make(map[string]*Function)
+	for _, m := range s.Methods {
+		methods[m.Name.Lexeme] = NewFunction(m, currentEnv,
+			m.Name.Lexeme == "init")
 	}
+	class := NewClass(s.Name.Lexeme, methods)
 	return currentEnv.Assign(s.Name, class)
 }

@@ -29,6 +29,8 @@ func Eval(ex expr.Expr) (any, error) {
 		return evalGet(e)
 	case *expr.Set:
 		return evalSet(e)
+	case *expr.This:
+		return lookupVariable(e.Keyword, e)
 	default:
 		return nil, errors.New("unhandled expression type")
 	}
@@ -37,7 +39,7 @@ func Eval(ex expr.Expr) (any, error) {
 func lookupVariable(name *tok.Token, e expr.Expr) (any, error) {
 	distance, ok := depthMap[e]
 	if ok {
-		return currentEnv.GetAt(distance, name)
+		return currentEnv.GetAt(distance, name.Lexeme)
 	} else {
 		return globalEnv.Get(name)
 	}

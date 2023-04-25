@@ -13,11 +13,21 @@ type FunctionType int
 const (
 	FunctionTypeNone FunctionType = iota
 	FunctionTypeFunction
+	FunctionTypeMethod
+	FunctionTypeInitializer
+)
+
+type ClassType int
+
+const (
+	ClassTypeNone ClassType = iota
+	ClassTypeClass
 )
 
 type Resolver struct {
 	scopes          []Scope
 	currentFunction FunctionType
+	currentClass    ClassType
 }
 
 func NewResolver() *Resolver {
@@ -73,15 +83,38 @@ func (r *Resolver) returnStmt(s *stmt.Return) {
 			Message: "Can't return from top-level code",
 		})
 	}
+
 	if s.Value != nil {
+		if r.currentFunction == FunctionTypeInitializer {
+			ReportParseError(&Error{
+				Token:   s.Keyword,
+				Message: "Can't return a value from an initializer",
+			})
+		}
 		r.ResolveExpression(s.Value)
 	}
 }
 
 func (r *Resolver) classStmt(s *stmt.Class) {
+	enclosingClass := r.currentClass
+	r.currentClass = ClassTypeClass
+
 	r.declare(s.Name)
 	r.define(s.Name)
-	// TODO: Methods
+
+	r.beginScope()
+	r.peekScope()["this"] = true
+
+	for _, m := range s.Methods {
+		if m.Name.Lexeme == "init" {
+			r.resolveFunction(m, FunctionTypeInitializer)
+		} else {
+			r.resolveFunction(m, FunctionTypeMethod)
+		}
+	}
+
+	r.endScope()
+	r.currentClass = enclosingClass
 }
 
 func (r *Resolver) ResolveExpression(ex expr.Expr) {
@@ -109,7 +142,23 @@ func (r *Resolver) ResolveExpression(ex expr.Expr) {
 		r.ResolveExpression(e.Right)
 	case *expr.Get:
 		r.ResolveExpression(e.Object)
+	case *expr.Set:
+		r.ResolveExpression(e.Object)
+		r.ResolveExpression(e.Value)
+	case *expr.This:
+		r.thisExpr(e)
 	}
+}
+
+func (r *Resolver) thisExpr(e *expr.This) {
+	if r.currentClass == ClassTypeNone {
+		ReportParseError(&Error{
+			Token:   e.Keyword,
+			Message: "Can't use 'this' outside a class",
+		})
+		return
+	}
+	r.resolveLocal(e, e.Keyword)
 }
 
 func (r *Resolver) variableExpr(e *expr.Variable) {

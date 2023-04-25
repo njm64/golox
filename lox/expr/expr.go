@@ -18,6 +18,7 @@ func (e *Logical) expr()  {}
 func (e *Call) expr()     {}
 func (e *Get) expr()      {}
 func (e *Set) expr()      {}
+func (e *This) expr()     {}
 
 type Binary struct {
 	Left     Expr
@@ -68,4 +69,8 @@ type Set struct {
 	Object Expr
 	Name   *tok.Token
 	Value  Expr
+}
+
+type This struct {
+	Keyword *tok.Token
 }

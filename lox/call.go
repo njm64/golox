@@ -20,30 +20,53 @@ func (r *Return) Error() string {
 }
 
 type Function struct {
-	Declaration *stmt.Function
-	Closure     *Environment
+	declaration   *stmt.Function
+	closure       *Environment
+	isInitializer bool
+}
+
+func NewFunction(declaration *stmt.Function, closure *Environment, isInitializer bool) *Function {
+	return &Function{
+		declaration:   declaration,
+		closure:       closure,
+		isInitializer: isInitializer,
+	}
 }
 
 func (f *Function) Arity() int {
-	return len(f.Declaration.Params)
+	return len(f.declaration.Params)
 }
 
 func (f *Function) Call(arguments []any) (any, error) {
-	e := NewEnvironment(f.Closure)
-	for i, param := range f.Declaration.Params {
+	e := NewEnvironment(f.closure)
+	for i, param := range f.declaration.Params {
 		e.Define(param.Lexeme, arguments[i])
 	}
-	err := execBlock(f.Declaration.Body, e)
+	err := execBlock(f.declaration.Body, e)
 	if err != nil {
 		ret, ok := err.(*Return)
 		if ok {
+			if f.isInitializer {
+				return f.closure.GetAt(0, "this")
+			}
 			return ret.Value, nil
 		}
 		return nil, err
 	}
+
+	if f.isInitializer {
+		return f.closure.GetAt(0, "this")
+	}
+
 	return nil, nil
 }
 
+func (f *Function) Bind(instance *Instance) *Function {
+	e := NewEnvironment(f.closure)
+	e.Define("this", instance)
+	return NewFunction(f.declaration, e, f.isInitializer)
+}
+
 func (f *Function) String() string {
-	return "<fn " + f.Declaration.Name.Lexeme + ">"
+	return "<fn " + f.declaration.Name.Lexeme + ">"
 }
