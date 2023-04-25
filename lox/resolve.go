@@ -22,6 +22,7 @@ type ClassType int
 const (
 	ClassTypeNone ClassType = iota
 	ClassTypeClass
+	ClassTypeSubclass
 )
 
 type Resolver struct {
@@ -110,7 +111,13 @@ func (r *Resolver) classStmt(s *stmt.Class) {
 	}
 
 	if s.Superclass != nil {
+		r.currentClass = ClassTypeSubclass
 		r.ResolveExpression(s.Superclass)
+	}
+
+	if s.Superclass != nil {
+		r.beginScope()
+		r.peekScope()["super"] = true
 	}
 
 	r.beginScope()
@@ -122,6 +129,10 @@ func (r *Resolver) classStmt(s *stmt.Class) {
 		} else {
 			r.resolveFunction(m, FunctionTypeMethod)
 		}
+	}
+
+	if s.Superclass != nil {
+		r.endScope()
 	}
 
 	r.endScope()
@@ -158,7 +169,19 @@ func (r *Resolver) ResolveExpression(ex expr.Expr) {
 		r.ResolveExpression(e.Value)
 	case *expr.This:
 		r.thisExpr(e)
+	case *expr.Super:
+		r.superExpr(e)
 	}
+}
+
+func (r *Resolver) variableExpr(e *expr.Variable) {
+	if len(r.scopes) > 0 {
+		defined, declared := r.peekScope()[e.Name.Lexeme]
+		if declared && !defined {
+			ReportParseError(&Error{Token: e.Name, Message: "Can't read local variable in its own initializer"})
+		}
+	}
+	r.resolveLocal(e, e.Name)
 }
 
 func (r *Resolver) thisExpr(e *expr.This) {
@@ -172,14 +195,21 @@ func (r *Resolver) thisExpr(e *expr.This) {
 	r.resolveLocal(e, e.Keyword)
 }
 
-func (r *Resolver) variableExpr(e *expr.Variable) {
-	if len(r.scopes) > 0 {
-		defined, declared := r.peekScope()[e.Name.Lexeme]
-		if declared && !defined {
-			ReportParseError(&Error{Token: e.Name, Message: "Can't read local variable in its own initializer"})
-		}
+func (r *Resolver) superExpr(e *expr.Super) {
+	if r.currentClass == ClassTypeNone {
+		ReportParseError(&Error{
+			Token:   e.Keyword,
+			Message: "Can't use 'super' outside a class",
+		})
+		return
+	} else if r.currentClass != ClassTypeSubclass {
+		ReportParseError(&Error{
+			Token:   e.Keyword,
+			Message: "Can't use 'super' in a class with no superclass",
+		})
 	}
-	r.resolveLocal(e, e.Name)
+
+	r.resolveLocal(e, e.Keyword)
 }
 
 func (r *Resolver) resolveLocal(e expr.Expr, name *tok.Token) {

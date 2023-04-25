@@ -125,11 +125,22 @@ func execClass(s *stmt.Class) error {
 	}
 
 	currentEnv.Define(s.Name.Lexeme, nil)
+
+	if s.Superclass != nil {
+		currentEnv = NewEnvironment(currentEnv)
+		currentEnv.Define("super", superclass)
+	}
+
 	methods := make(map[string]*Function)
 	for _, m := range s.Methods {
 		methods[m.Name.Lexeme] = NewFunction(m, currentEnv,
 			m.Name.Lexeme == "init")
 	}
 	class := NewClass(s.Name.Lexeme, superclass, methods)
+
+	if s.Superclass != nil {
+		currentEnv = currentEnv.enclosing
+	}
+
 	return currentEnv.Assign(s.Name, class)
 }

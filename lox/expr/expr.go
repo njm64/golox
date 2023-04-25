@@ -19,6 +19,7 @@ func (e *Call) expr()     {}
 func (e *Get) expr()      {}
 func (e *Set) expr()      {}
 func (e *This) expr()     {}
+func (e *Super) expr()    {}
 
 type Binary struct {
 	Left     Expr
@@ -73,4 +74,9 @@ type Set struct {
 
 type This struct {
 	Keyword *tok.Token
+}
+
+type Super struct {
+	Keyword *tok.Token
+	Method  *tok.Token
 }

@@ -586,6 +586,17 @@ func (p *Parser) primary() (expr.Expr, error) {
 		return &expr.Literal{Value: nil}, nil
 	} else if p.match(tok.Number, tok.String) {
 		return &expr.Literal{Value: p.previous().Literal}, nil
+	} else if p.match(tok.Super) {
+		keyword := p.previous()
+		_, err := p.consume(tok.Dot, "Expect '.' after 'super'")
+		if err != nil {
+			return nil, err
+		}
+		method, err := p.consume(tok.Identifier, "Expect superclass method name")
+		if err != nil {
+			return nil, err
+		}
+		return &expr.Super{Keyword: keyword, Method: method}, nil
 	} else if p.match(tok.This) {
 		return &expr.This{Keyword: p.previous()}, nil
 	} else if p.match(tok.Identifier) {

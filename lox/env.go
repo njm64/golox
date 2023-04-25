@@ -52,8 +52,8 @@ func (e *Environment) Assign(name *tok.Token, value any) error {
 	return &Error{Token: name, Message: "Undefined variable '" + name.Lexeme + "'"}
 }
 
-func (e *Environment) GetAt(distance int, name string) (any, error) {
-	return e.ancestor(distance).values[name], nil
+func (e *Environment) GetAt(distance int, name string) any {
+	return e.ancestor(distance).values[name]
 }
 
 func (e *Environment) AssignAt(distance int, name *tok.Token, value any) {

@@ -47,7 +47,7 @@ func (f *Function) Call(arguments []any) (any, error) {
 		ret, ok := err.(*Return)
 		if ok {
 			if f.isInitializer {
-				return f.closure.GetAt(0, "this")
+				return f.closure.GetAt(0, "this"), nil
 			}
 			return ret.Value, nil
 		}
@@ -55,7 +55,7 @@ func (f *Function) Call(arguments []any) (any, error) {
 	}
 
 	if f.isInitializer {
-		return f.closure.GetAt(0, "this")
+		return f.closure.GetAt(0, "this"), nil
 	}
 
 	return nil, nil

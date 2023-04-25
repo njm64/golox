@@ -31,6 +31,8 @@ func Eval(ex expr.Expr) (any, error) {
 		return evalSet(e)
 	case *expr.This:
 		return lookupVariable(e.Keyword, e)
+	case *expr.Super:
+		return evalSuper(e)
 	default:
 		return nil, errors.New("unhandled expression type")
 	}
@@ -39,7 +41,7 @@ func Eval(ex expr.Expr) (any, error) {
 func lookupVariable(name *tok.Token, e expr.Expr) (any, error) {
 	distance, ok := depthMap[e]
 	if ok {
-		return currentEnv.GetAt(distance, name.Lexeme)
+		return currentEnv.GetAt(distance, name.Lexeme), nil
 	} else {
 		return globalEnv.Get(name)
 	}
@@ -248,6 +250,22 @@ func evalSet(e *expr.Set) (any, error) {
 
 	instance.Set(e.Name, value)
 	return nil, nil
+}
+
+func evalSuper(e *expr.Super) (any, error) {
+	distance := depthMap[e]
+	superclass := currentEnv.GetAt(distance, "super").(*Class)
+	object := currentEnv.GetAt(distance-1, "this").(*Instance)
+	method := superclass.FindMethod(e.Method.Lexeme)
+
+	if method == nil {
+		return nil, &Error{
+			Token:   e.Keyword,
+			Message: "Undefined property '" + e.Method.Lexeme + "'",
+		}
+	}
+
+	return method.Bind(object), nil
 }
 
 func checkNumberOperand(tok *tok.Token, operand any) error {
