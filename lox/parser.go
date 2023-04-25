@@ -56,6 +56,15 @@ func (p *Parser) classDeclaration() (stmt.Stmt, error) {
 		return nil, err
 	}
 
+	var superclass *expr.Variable
+	if p.match(tok.Less) {
+		_, err = p.consume(tok.Identifier, "Expect superclass name")
+		if err != nil {
+			return nil, err
+		}
+		superclass = &expr.Variable{Name: p.previous()}
+	}
+
 	_, err = p.consume(tok.LeftBrace, "Expect '{' after class name")
 	if err != nil {
 		return nil, err
@@ -76,8 +85,9 @@ func (p *Parser) classDeclaration() (stmt.Stmt, error) {
 	}
 
 	return &stmt.Class{
-		Name:    name,
-		Methods: methods,
+		Name:       name,
+		Superclass: superclass,
+		Methods:    methods,
 	}, nil
 }
 

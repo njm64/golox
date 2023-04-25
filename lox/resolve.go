@@ -102,6 +102,17 @@ func (r *Resolver) classStmt(s *stmt.Class) {
 	r.declare(s.Name)
 	r.define(s.Name)
 
+	if s.Superclass != nil && s.Superclass.Name.Lexeme == s.Name.Lexeme {
+		ReportParseError(&Error{
+			Token:   s.Superclass.Name,
+			Message: "A class can't inherit from itself",
+		})
+	}
+
+	if s.Superclass != nil {
+		r.ResolveExpression(s.Superclass)
+	}
+
 	r.beginScope()
 	r.peekScope()["this"] = true
 

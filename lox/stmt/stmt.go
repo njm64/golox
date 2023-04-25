@@ -59,6 +59,7 @@ type Return struct {
 }
 
 type Class struct {
-	Name    *tok.Token
-	Methods []*Function
+	Name       *tok.Token
+	Superclass *expr.Variable
+	Methods    []*Function
 }

@@ -108,12 +108,28 @@ func execReturn(s *stmt.Return) error {
 }
 
 func execClass(s *stmt.Class) error {
+	var superclass *Class
+
+	if s.Superclass != nil {
+		sc, err := Eval(s.Superclass)
+		if err != nil {
+			return err
+		}
+
+		var ok bool
+		superclass, ok = sc.(*Class)
+		if !ok {
+			return &Error{Token: s.Superclass.Name,
+				Message: "Superclass must be a class"}
+		}
+	}
+
 	currentEnv.Define(s.Name.Lexeme, nil)
 	methods := make(map[string]*Function)
 	for _, m := range s.Methods {
 		methods[m.Name.Lexeme] = NewFunction(m, currentEnv,
 			m.Name.Lexeme == "init")
 	}
-	class := NewClass(s.Name.Lexeme, methods)
+	class := NewClass(s.Name.Lexeme, superclass, methods)
 	return currentEnv.Assign(s.Name, class)
 }
